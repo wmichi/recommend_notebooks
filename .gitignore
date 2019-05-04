@@ -1,0 +1,7 @@
+*.csv
+data/MovieLens100k/org/*.*
+__pycache__
+*.ipynb_checkpoints
+*_config.ini
+data/MovieLens20M/org/README.txt
+data/MovieLens100k/org/README
