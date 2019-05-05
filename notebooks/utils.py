@@ -1,48 +1,84 @@
+import os
 import tensorflow as tf
+import pandas as pd
+from shutil import copyfile
+
 
 class EarlyStoppingHook(tf.train.SessionRunHook):
+  '''TrainSpecにて使用するEarlyStoppingのhook
+  '''
+  def __init__(self, early_stopping_rounds=1):
+      self._best_loss = None
+      self._early_stopping_rounds = early_stopping_rounds
+      self._counter = 0
 
-    def __init__(self, early_stopping_rounds=1):
-        self._best_loss = None
-        self._early_stopping_rounds = early_stopping_rounds
-        self._counter = 0
+      print("")
+      print("*** Early Stopping Hook: - Created")
+      print("*** Early Stopping Hook:: Early Stopping Rounds: {}".format(self._early_stopping_rounds))
+      print("")
 
-        print("")
-        print("*** Early Stopping Hook: - Created")
-        print("*** Early Stopping Hook:: Early Stopping Rounds: {}".format(self._early_stopping_rounds))
-        print("")
+  def before_run(self, run_context):
 
-    def before_run(self, run_context):
+      graph = run_context.session.graph
 
-        graph = run_context.session.graph
+      loss_tensor = graph.get_collection(tf.GraphKeys.LOSSES)[1]
+      return tf.train.SessionRunArgs(loss_tensor)
 
-#         tensor_name = "dnn/head/weighted_loss/Sum:0" #works!!
-#         loss_tensor = graph.get_tensor_by_name(tensor_name)
+  def after_run(self, run_context, run_values):
 
-        loss_tensor = graph.get_collection(tf.GraphKeys.LOSSES)[1]
-        return tf.train.SessionRunArgs(loss_tensor)
+      last_loss = run_values.results
 
-    def after_run(self, run_context, run_values):
+      if self._best_loss is None:
+          self._best_loss = last_loss
 
-        last_loss = run_values.results
+      elif last_loss > self._best_loss:
 
-        if self._best_loss is None:
-            self._best_loss = last_loss
+          self._counter += 1
+          print("Early Stopping Hook: No improvment! Counter: {}".format(self._counter))
 
-        elif last_loss > self._best_loss:
+          if self._counter == self._early_stopping_rounds:
 
-            self._counter += 1
-            print("Early Stopping Hook: No improvment! Counter: {}".format(self._counter))
+              run_context.request_stop()
+              print("Early Stopping Hook: Stop Requested: {}".format(run_context.stop_requested))
+      else:
 
-            if self._counter == self._early_stopping_rounds:
+          self._best_loss = last_loss
+          self._counter = 0
 
-                run_context.request_stop()
-                print("Early Stopping Hook: Stop Requested: {}".format(run_context.stop_requested))
-        else:
+      print("************************")
+      print("")
 
-            self._best_loss = last_loss
-            self._counter = 0
 
-        print("************************")
-        print("")
+def export_result(model_name, auc, accuracy, config_filename, execute_time):
+  '''AUCやAccuracyをcsvに出力する関数
 
+  Parameters:
+  --------------------
+  model_name: str
+    'FactorizationMachines'や'NeuralFM'といったモデル名
+  auc: float
+    予測結果（AUC）
+  accuracy: float
+    予測結果（Accuracy)
+  config:
+    学習時に使用したconfig.iniファイル
+  execute_time: str
+    学習の実行時間
+
+  Return:
+  --------------------
+  None
+  ただしlog/result.csvへの書き込み、configファイルのlog/config_fileディレクトリへのコピーを行なっている。
+  '''
+  # configファイルのコピー
+  # log/result.csvのexecute_timeから探せるようファイル名を変更
+  config_filepath = '../log/config_file/' + execute_time + '_config.ini'
+  copyfile(config, config_filepath)
+
+  # result.csvに書き込む内容を作成。かなり手作り...
+  result = ','.join([modelname, str(auc), str(accuracy), execute_time])
+  result_filename = '../log/result.csv'
+
+  with open(result_filename, 'a', newline='\n') as f:
+    f.write(result)
+    f.write('\n')

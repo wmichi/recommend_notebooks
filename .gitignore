@@ -5,3 +5,4 @@ __pycache__
 *_config.ini
 data/MovieLens20M/org/README.txt
 data/MovieLens100k/org/README
+models/2*
