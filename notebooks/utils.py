@@ -60,8 +60,8 @@ def export_result(model_name, auc, accuracy, config_filename, execute_time):
     予測結果（AUC）
   accuracy: float
     予測結果（Accuracy)
-  config:
-    学習時に使用したconfig.iniファイル
+  config_filename:
+    学習時に使用したconfig.iniファイルのファイル名
   execute_time: str
     学習の実行時間
 
@@ -72,11 +72,11 @@ def export_result(model_name, auc, accuracy, config_filename, execute_time):
   '''
   # configファイルのコピー
   # log/result.csvのexecute_timeから探せるようファイル名を変更
-  config_filepath = '../log/config_file/' + execute_time + '_config.ini'
-  copyfile(config, config_filepath)
+  config_filepath = '../log/config_files/' + execute_time + '_config.ini'
+  copyfile(config_filename, config_filepath)
 
   # result.csvに書き込む内容を作成。かなり手作り...
-  result = ','.join([modelname, str(auc), str(accuracy), execute_time])
+  result = ','.join([model_name, str(auc), str(accuracy), execute_time])
   result_filename = '../log/result.csv'
 
   with open(result_filename, 'a', newline='\n') as f:
